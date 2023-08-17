@@ -18,7 +18,7 @@ use Vector3 as Color3;
 use crate::material::Material;
 
 fn main() -> Result<(), Error> {
-    let mut output_image = File::create("examples/1.ppm")?;
+    let mut output_image = File::create("out.ppm")?;
     let camera = Camera::initialize();
     let world = HittableList {
         hittables: vec![
