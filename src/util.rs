@@ -6,6 +6,15 @@ use rand::Rng;
 
 use Vector3 as Color3;
 
+pub fn random_in_unit_disc() -> Vector3<f64> {
+    let mut rng = rand::thread_rng();
+    loop {
+        let p = Vector3::new(rng.gen_range(-1.0..1.0), rng.gen_range(-1.0..1.0), 0.0);
+        if vector_length_squared(p) < 1.0 {
+            return p;
+        }
+    }
+}
 pub fn refract(uv: Vector3<f64>, normal: Vector3<f64>, etai_over_etat: f64) -> Vector3<f64> {
     // gonna be real with you, i don't understand a lick of this math.
     let cos_theta = f64::min((-uv).dot(normal), 1.0);

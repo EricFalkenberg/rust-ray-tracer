@@ -72,12 +72,7 @@ pub struct HittableList {
     pub hittables: Vec<Hittable>
 }
 impl HittableList {
-    #[allow(dead_code)]
-    pub fn clear(mut self: HittableList) {
-        self.hittables.clear();
-    }
-    #[allow(dead_code)]
-    pub fn add(mut self: HittableList, hittable: Hittable) {
+    pub fn add(self: &mut HittableList, hittable: Hittable) {
         self.hittables.push(hittable);
     }
     pub fn hit(self: &HittableList, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {

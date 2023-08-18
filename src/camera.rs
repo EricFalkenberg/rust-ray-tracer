@@ -6,72 +6,77 @@ use rand::Rng;
 use Vector3 as Point3;
 use crate::hittable::HittableList;
 use crate::ray::Ray;
-use crate::scene::Scene;
-use crate::util::{unit_vector, vector_length, write_pixel};
+use crate::util::{random_in_unit_disc, unit_vector, write_pixel};
 
 use Vector3 as Color3;
+use crate::image::Image;
+use crate::viewport::Viewport;
 
 pub struct Camera {
-    pub scene: Scene,
+    image: Image,
+    camera_center: Point3<f64>,
     pixel00_loc: Point3<f64>,
     pixel_delta_u: Vector3<f64>,
     pixel_delta_v: Vector3<f64>,
+    defocus_disc_u: Vector3<f64>,
+    defocus_disc_v: Vector3<f64>,
+    defocus_angle: f64,
     max_ray_bounce_depth: i32
 }
 impl Camera {
-    pub fn initialize() -> Self {
-        let look_from = Point3::new(-2.0, 2.0, 1.0);
-        let look_at = Point3::new(0.0, 0.0, -1.0);
-        let v_up = Vector3::new(0.0, 1.0, 0.0);
+    pub fn initialize(config: CameraConfig) -> Self {
+        // Init image and viewport
+        let image = Image::new(config.image_width, config.aspect_ratio);
+        let viewport = Viewport::new(&image, &config);
 
-        let max_ray_bounce_depth = 50;
-        // Scene
-        let scene = Scene::new(400, 16.0/9.0);
-
-        let camera_center = look_from;
-        let focal_length = vector_length(look_from - look_at);
-        let vfov: f64 = 90.0;
-        let theta = vfov.to_radians();
-        let h = (theta/2.0).tan();
-
-        let viewport_height = 2.0 * h * focal_length;
-        let viewport_width = viewport_height * (scene.image.width as f64 / scene.image.height as f64);
-
-        let w = unit_vector(look_from - look_at);
-        let u = v_up.cross(w);
+        // Camera vector space
+        let camera_center = config.lookfrom;
+        let w = unit_vector(config.lookfrom - config.lookat);
+        let u = config.vup.cross(w);
         let v = w.cross(u);
 
         // Viewport edge vectors
-        let viewport_u = viewport_width * u;
-        let viewport_v = viewport_height * -v;
+        let viewport_u = viewport.width * u;
+        let viewport_v = viewport.height * -v;
+
         // Deltas between horizontal & vertical vectors
-        let pixel_delta_u = viewport_u / scene.image.width as f64;
-        let pixel_delta_v = viewport_v / scene.image.height as f64;
+        let pixel_delta_u = viewport_u / image.width as f64;
+        let pixel_delta_v = viewport_v / image.height as f64;
+
         // Location of upper left pixel
         let viewport_upper_left = camera_center
-            - (focal_length * w)
+            - (config.focus_dist * w)
             - (viewport_u/2.0)
             - (viewport_v/2.0);
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+        let defocus_radius = config.focus_dist * (config.defocus_angle / 2.0).to_radians().tan();
+        let defocus_disc_u = u * defocus_radius;
+        let defocus_disc_v = v * defocus_radius;
+
         Camera {
-            scene,
+            image,
+            camera_center,
             pixel00_loc,
             pixel_delta_u,
             pixel_delta_v,
-            max_ray_bounce_depth
+            defocus_disc_u,
+            defocus_disc_v,
+            defocus_angle: config.defocus_angle,
+            max_ray_bounce_depth: config.max_depth
         }
     }
     pub fn render(self: &Camera, file: &mut File, hittables: &HittableList) -> Result<(), Error> {
-        file.write_all(format!("P3\n{0} {1}\n255\n", self.scene.image.width, self.scene.image.height).as_bytes())?;
-        for j in (0..self.scene.image.height).progress() {
-            for i in 0..self.scene.image.width {
+        file.write_all(format!("P3\n{0} {1}\n255\n", self.image.width, self.image.height).as_bytes())?;
+        for j in (0..self.image.height).progress() {
+            for i in 0..self.image.width {
                 let mut pixel_color = Color3::new(0.0, 0.0, 0.0);
-                for _ in 0..self.scene.image.samples_per_pixel {
+                for _ in 0..self.image.samples_per_pixel {
                     let ray = self.get_ray(i, j);
                     let ray_color = ray.color(hittables, self.max_ray_bounce_depth);
                     pixel_color += ray_color;
                 }
-                write_pixel(file, &pixel_color, self.scene.image.samples_per_pixel)?;
+                write_pixel(file, &pixel_color, self.image.samples_per_pixel)?;
             }
         }
         Ok(())
@@ -80,7 +85,7 @@ impl Camera {
         let pixel_center = self.pixel00_loc + (i as f64 * self.pixel_delta_u) + (j as f64 * self.pixel_delta_v);
         let pixel_sample = pixel_center + self.pixel_sample_square();
 
-        let origin = self.scene.viewport.camera_center;
+        let origin = if self.defocus_angle <= 0.0 { self.camera_center } else { self.defocus_disc_sample() };
         let direction = pixel_sample - origin;
         Ray { origin, direction }
     }
@@ -90,4 +95,22 @@ impl Camera {
         let py = rng.gen_range(-0.5..0.5);
         (px * self.pixel_delta_u) + (py * self.pixel_delta_v)
     }
+    fn defocus_disc_sample(self: &Camera) -> Point3<f64> {
+        let p = random_in_unit_disc();
+        self.camera_center + (p.x * self.defocus_disc_u) + (p.y * self.defocus_disc_v)
+
+    }
+}
+
+pub struct CameraConfig {
+    pub aspect_ratio: f64,
+    pub image_width: i32,
+    pub samples_per_pixel: i32,
+    pub max_depth: i32,
+    pub vfov: f64,
+    pub lookfrom: Point3<f64>,
+    pub lookat: Point3<f64>,
+    pub vup: Vector3<f64>,
+    pub defocus_angle: f64,
+    pub focus_dist: f64
 }
