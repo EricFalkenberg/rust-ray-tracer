@@ -7,7 +7,7 @@ use Vector3 as Point3;
 use crate::hittable::HittableList;
 use crate::ray::Ray;
 use crate::scene::Scene;
-use crate::util::write_pixel;
+use crate::util::{unit_vector, vector_length, write_pixel};
 
 use Vector3 as Color3;
 
@@ -20,18 +20,36 @@ pub struct Camera {
 }
 impl Camera {
     pub fn initialize() -> Self {
+        let look_from = Point3::new(-2.0, 2.0, 1.0);
+        let look_at = Point3::new(0.0, 0.0, -1.0);
+        let v_up = Vector3::new(0.0, 1.0, 0.0);
+
         let max_ray_bounce_depth = 50;
         // Scene
         let scene = Scene::new(400, 16.0/9.0);
+
+        let camera_center = look_from;
+        let focal_length = vector_length(look_from - look_at);
+        let vfov: f64 = 90.0;
+        let theta = vfov.to_radians();
+        let h = (theta/2.0).tan();
+
+        let viewport_height = 2.0 * h * focal_length;
+        let viewport_width = viewport_height * (scene.image.width as f64 / scene.image.height as f64);
+
+        let w = unit_vector(look_from - look_at);
+        let u = v_up.cross(w);
+        let v = w.cross(u);
+
         // Viewport edge vectors
-        let viewport_u = Vector3::new(scene.viewport.width, 0.0, 0.0);
-        let viewport_v = Vector3::new(0.0, -scene.viewport.height, 0.0);
+        let viewport_u = viewport_width * u;
+        let viewport_v = viewport_height * -v;
         // Deltas between horizontal & vertical vectors
         let pixel_delta_u = viewport_u / scene.image.width as f64;
         let pixel_delta_v = viewport_v / scene.image.height as f64;
         // Location of upper left pixel
-        let viewport_upper_left = scene.viewport.camera_center
-            - Vector3::new(0.0, 0.0, scene.viewport.focal_length)
+        let viewport_upper_left = camera_center
+            - (focal_length * w)
             - (viewport_u/2.0)
             - (viewport_v/2.0);
         let pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);

@@ -12,12 +12,13 @@ pub struct HitRecord {
     pub point: Point3<f64>,
     pub normal: Vector3<f64>,
     pub t: f64,
-    pub material: Material
+    pub material: Material,
+    pub front_face: bool
 }
 impl HitRecord {
     fn set_face_normal(mut self: &mut HitRecord, ray: &Ray, outward_normal: Vector3<f64>) {
-        let front_face = ray.direction.dot(outward_normal) < 0.0;
-        self.normal = if front_face { outward_normal } else { -outward_normal };
+        self.front_face = ray.direction.dot(outward_normal) < 0.0;
+        self.normal = if self.front_face { outward_normal } else { -outward_normal };
     }
 
 }
@@ -43,7 +44,8 @@ impl Hittable {
                             point: intersect_point,
                             normal: outward_normal,
                             t: root,
-                            material: material.clone()
+                            material: material.clone(),
+                            front_face: true
                         };
                         record.set_face_normal(ray, outward_normal);
                         Some(record)

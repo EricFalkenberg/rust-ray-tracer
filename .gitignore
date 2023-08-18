@@ -3,3 +3,4 @@
 *.iml
 Cargo.lock
 out.ppm
+.DS_store

@@ -24,12 +24,6 @@ impl Ray {
             Some(hit) => {
                 let (attenuation, scattered) = hit.material.scatter(self, &hit);
                 attenuation.mul_element_wise(scattered.color(hittable_list, max_depth - 1))
-
-                // let new_ray = Ray {
-                //     origin: hit.point,
-                //     direction: hit.normal + util::random_on_hemisphere(&hit.normal)
-                // };
-                // 0.5 * new_ray.color(hittable_list, max_depth - 1)
             }
             None => {
                 let unit_direction = util::unit_vector(self.direction);

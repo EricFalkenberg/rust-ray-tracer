@@ -6,6 +6,17 @@ use rand::Rng;
 
 use Vector3 as Color3;
 
+pub fn refract(uv: Vector3<f64>, normal: Vector3<f64>, etai_over_etat: f64) -> Vector3<f64> {
+    // gonna be real with you, i don't understand a lick of this math.
+    let cos_theta = f64::min((-uv).dot(normal), 1.0);
+    let r_out_perp = etai_over_etat * (uv + (cos_theta * normal));
+    let r_out_parallel = (
+        -f64::sqrt(
+            f64::abs(1.0 - vector_length_squared(r_out_perp))
+        )
+    ) * normal;
+    r_out_perp + r_out_parallel
+}
 pub fn reflect(v: Vector3<f64>, normal: Vector3<f64>) -> Vector3<f64> {
     v - 2.0 * v.dot(normal) * normal
 }
