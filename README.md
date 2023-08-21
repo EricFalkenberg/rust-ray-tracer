@@ -1,4 +1,4 @@
-# Rust Ray Tracer
+# Rust Ray Tracer [![Rust](https://github.com/EricFalkenberg/rust-ray-tracer/actions/workflows/rust.yml/badge.svg)](https://github.com/EricFalkenberg/rust-ray-tracer/actions/workflows/rust.yml)
 A simple ray tracer written in rust
 
 ## Output
