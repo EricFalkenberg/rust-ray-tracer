@@ -1,12 +1,15 @@
-use cgmath::{InnerSpace, Vector3};
+use cgmath::{ElementWise, InnerSpace, Vector3};
 use cgmath::num_traits::Pow;
+use rand::Rng;
+
+use Vector3 as Point3;
+use Vector3 as Color3;
+
+use crate::material::Material;
+use crate::util::{Interval, random_vector, random_vector_bounded, vector_length};
 use crate::hittable::Hittable::Circle;
 use crate::ray::Ray;
 use crate::util;
-
-use Vector3 as Point3;
-use crate::material::Material;
-use crate::util::Interval;
 
 pub struct HitRecord {
     pub point: Point3<f64>,
@@ -56,7 +59,6 @@ impl Hittable {
         }
     }
 }
-
 fn find_nearest_root(a: f64, half_b: f64, discriminant: f64, ray_t: Interval) -> Option<f64> {
     let sqrtd = f64::sqrt(discriminant);
     let mut root = (-half_b - sqrtd) / a;
@@ -89,4 +91,80 @@ impl HittableList {
         }
         hit_record
     }
+    pub fn random_world() -> Self {
+        let mut world = Self { hittables: vec![] };
+        world.add(
+            Circle {
+                center: Vector3::new(0.0, -1000.0, 0.0),
+                radius: 1000.0,
+                material: Material::Lambertian { albedo: Color3::new(0.5, 0.5, 0.5) }
+            }
+        );
+        let mut rng = rand::thread_rng();
+        let offset_point = Point3::new(4.0, 0.2, 0.0);
+        for a in -11..11 {
+            for b in -11..11 {
+                let choice = rng.gen_range(0..=2);
+                let a_variance: f64 = rng.gen();
+                let b_variance: f64 = rng.gen();
+                let center = Point3::new(a as f64 + 0.9*a_variance, 0.2, b as f64 + 0.9*b_variance);
+                if vector_length(center - offset_point) > 0.9 {
+                    if choice == 0 {
+                        let albedo = random_vector().mul_element_wise(random_vector());
+                        world.add(
+                            Circle {
+                                center,
+                                radius: 0.2,
+                                material: Material::Lambertian { albedo }
+                            }
+                        );
+                    } else if choice == 1 {
+                        let albedo = random_vector_bounded(0.5, 1.0);
+                        let fuzz = rng.gen_range(0.0..0.5);
+                        world.add(
+                            Circle {
+                                center,
+                                radius: 0.2,
+                                material: Material::Metal { albedo, fuzz }
+                            }
+                        );
+                    } else {
+                        world.add(
+                            Circle {
+                                center,
+                                radius: 0.2,
+                                material: Material::Glass { refraction_index: 1.5 }
+                            }
+                        );
+                    }
+                }
+            }
+        }
+        world.add(
+            Circle {
+                center: Vector3::new(0.0, 1.0, 0.0),
+                radius: 1.0,
+                material: Material::Glass { refraction_index: 1.5 }
+            }
+        );
+        world.add(
+            Circle {
+                center: Vector3::new(-4.0, 1.0, 0.0),
+                radius: 1.0,
+                material: Material::Lambertian { albedo: Color3::new(0.4, 0.2, 0.1) }
+            }
+        );
+        world.add(
+            Circle {
+                center: Vector3::new(4.0, 1.0, 0.0),
+                radius: 1.0,
+                material: Material::Metal {
+                    albedo: Color3::new(0.7, 0.6, 0.5),
+                    fuzz: 0.0
+                }
+            }
+        );
+        world
+    }
+
 }

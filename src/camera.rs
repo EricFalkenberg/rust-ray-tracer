@@ -1,8 +1,10 @@
 use std::fs::File;
 use std::io::{Error, Write};
+use std::sync::Mutex;
 use cgmath::Vector3;
-use indicatif::ProgressIterator;
+use indicatif::ProgressBar;
 use rand::Rng;
+use rayon::prelude::*;
 use Vector3 as Point3;
 use crate::hittable::HittableList;
 use crate::ray::Ray;
@@ -68,17 +70,34 @@ impl Camera {
     }
     pub fn render(self: &Camera, file: &mut File, hittables: &HittableList) -> Result<(), Error> {
         file.write_all(format!("P3\n{0} {1}\n255\n", self.image.width, self.image.height).as_bytes())?;
-        for j in (0..self.image.height).progress() {
-            for i in 0..self.image.width {
-                let mut pixel_color = Color3::new(0.0, 0.0, 0.0);
-                for _ in 0..self.image.samples_per_pixel {
+        let progress = Mutex::new(ProgressBar::new(self.image.height as u64));
+        let pixels = (0..self.image.height).into_par_iter().map(|j| {
+            let row = (0..self.image.width).into_par_iter().map(move |i| {
+                let pixel_color = (0..self.image.samples_per_pixel).into_par_iter().map(|_| {
                     let ray = self.get_ray(i, j);
-                    let ray_color = ray.color(hittables, self.max_ray_bounce_depth);
-                    pixel_color += ray_color;
-                }
+                    ray.color(hittables, self.max_ray_bounce_depth)
+                }).sum();
+                pixel_color
+            }).collect::<Vec<Color3<f64>>>();
+            progress.lock().unwrap().inc(1);
+            row
+        }).collect::<Vec<Vec<Color3<f64>>>>();
+        for pixel_row in pixels {
+            for pixel_color in pixel_row {
                 write_pixel(file, &pixel_color, self.image.samples_per_pixel)?;
             }
         }
+        // for j in (0..self.image.height).progress() {
+        //     for i in 0..self.image.width {
+        //         let mut pixel_color = Color3::new(0.0, 0.0, 0.0);
+        //         for _ in 0..self.image.samples_per_pixel {
+        //             let ray = self.get_ray(i, j);
+        //             let ray_color = ray.color(hittables, self.max_ray_bounce_depth);
+        //             pixel_color += ray_color;
+        //         }
+        //         write_pixel(file, &pixel_color, self.image.samples_per_pixel)?;
+        //     }
+        // }
         Ok(())
     }
     fn get_ray(self: &Camera, i: i32, j: i32) -> Ray {
