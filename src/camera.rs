@@ -86,17 +86,6 @@ impl Camera {
                 write_pixel(file, &pixel_color, self.image.samples_per_pixel)?;
             }
         }
-        // for j in (0..self.image.height).progress() {
-        //     for i in 0..self.image.width {
-        //         let mut pixel_color = Color3::new(0.0, 0.0, 0.0);
-        //         for _ in 0..self.image.samples_per_pixel {
-        //             let ray = self.get_ray(i, j);
-        //             let ray_color = ray.color(hittables, self.max_ray_bounce_depth);
-        //             pixel_color += ray_color;
-        //         }
-        //         write_pixel(file, &pixel_color, self.image.samples_per_pixel)?;
-        //     }
-        // }
         Ok(())
     }
     fn get_ray(self: &Camera, i: i32, j: i32) -> Ray {
