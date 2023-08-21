@@ -19,7 +19,7 @@ pub struct HitRecord {
     pub front_face: bool
 }
 impl HitRecord {
-    fn set_face_normal(mut self: &mut HitRecord, ray: &Ray, outward_normal: Vector3<f64>) {
+    fn set_face_normal(self: &mut HitRecord, ray: &Ray, outward_normal: Vector3<f64>) {
         self.front_face = ray.direction.dot(outward_normal) < 0.0;
         self.normal = if self.front_face { outward_normal } else { -outward_normal };
     }
@@ -83,7 +83,7 @@ impl HittableList {
         for hittable in &self.hittables {
             match hittable.hit(ray, Interval::new(ray_t.min, closest_t_hit)) {
                 Some(hit) => {
-                    closest_t_hit = hit.t.clone();
+                    closest_t_hit = hit.t;
                     hit_record = Some(hit);
                 }
                 None => continue

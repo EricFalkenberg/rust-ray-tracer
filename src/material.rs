@@ -61,8 +61,8 @@ impl Material {
     }
     pub fn clone(self: &Material) -> Material {
         match self {
-            Material::Lambertian { albedo } => Material::Lambertian { albedo: albedo.clone() },
-            Material::Metal { albedo, fuzz } => Material::Metal { albedo: albedo.clone(), fuzz: *fuzz },
+            Material::Lambertian { albedo } => Material::Lambertian { albedo: *albedo },
+            Material::Metal { albedo, fuzz } => Material::Metal { albedo: *albedo, fuzz: *fuzz },
             Material::Glass { refraction_index } => Material::Glass { refraction_index: *refraction_index }
         }
     }

@@ -73,11 +73,10 @@ impl Camera {
         let progress = Mutex::new(ProgressBar::new(self.image.height as u64));
         let pixels = (0..self.image.height).into_par_iter().map(|j| {
             let row = (0..self.image.width).into_par_iter().map(move |i| {
-                let pixel_color = (0..self.image.samples_per_pixel).into_par_iter().map(|_| {
+                (0..self.image.samples_per_pixel).into_par_iter().map(|_| {
                     let ray = self.get_ray(i, j);
                     ray.color(hittables, self.max_ray_bounce_depth)
-                }).sum();
-                pixel_color
+                }).sum()
             }).collect::<Vec<Color3<f64>>>();
             progress.lock().unwrap().inc(1);
             row
