@@ -56,5 +56,5 @@ jobs:
           wait-for-processing: true
       
       - name: Check Failure
-        if: job.steps.clippy.status == failure()
+        if: job.steps.clippy.outcome == 'failure'
         run: exit 1
