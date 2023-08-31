@@ -9,7 +9,8 @@ use crate::util::Interval;
 
 pub struct Ray {
     pub origin: Point3<f64>,
-    pub direction: Vector3<f64>
+    pub direction: Vector3<f64>,
+    pub time: f64
 }
 impl Ray {
     pub fn at(self: &Ray, t: f64) -> Point3<f64> {

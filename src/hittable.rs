@@ -6,8 +6,8 @@ use Vector3 as Point3;
 use Vector3 as Color3;
 
 use crate::material::Material;
-use crate::util::{Interval, random_vector, random_vector_bounded, vector_length};
-use crate::hittable::Hittable::Circle;
+use crate::util::{Interval, random_vector, random_vector_bounded, unit_vector, vector_length};
+use crate::hittable::Hittable::{Circle, Triangle};
 use crate::ray::Ray;
 use crate::util;
 
@@ -26,7 +26,8 @@ impl HitRecord {
 
 }
 pub enum Hittable {
-    Circle { center: Vector3<f64>, radius: f64, material: Material }
+    Circle { center: Vector3<f64>, radius: f64, material: Material },
+    Triangle { a: Point3<f64>, b: Point3<f64>, c: Point3<f64>, material: Material }
 }
 impl Hittable {
     pub fn hit(self: &Hittable, ray: &Ray, ray_t: Interval) -> Option<HitRecord> {
@@ -54,6 +55,50 @@ impl Hittable {
                         Some(record)
                     }
                     None => None
+                }
+            },
+            Triangle { a, b, c, material } => {
+                let ba = b - a;
+                let ca = c - a;
+                let n = ba.cross(ca);
+                let normal = unit_vector(n);
+                let d = normal.dot(*a);
+
+                let denom = normal.dot(ray.direction);
+
+                if f64::abs(denom) < 1e-8 {
+                    return None
+                }
+
+                let t = (d - normal.dot(ray.origin)) / denom;
+
+                if !ray_t.contains(t) {
+                    return None;
+                }
+
+                let intersection = ray.at(t);
+
+                let edge0 = b - a;
+                let edge1 = c - b;
+                let edge2 = a - c;
+                let c0 = intersection - a;
+                let c1 = intersection - b;
+                let c2 = intersection - c;
+                if normal.dot(edge0.cross(c0)) > 0.0
+                    && normal.dot(edge1.cross(c1)) > 0.0
+                    && normal.dot(edge2.cross(c2)) > 0.0
+                {
+                    let mut record = HitRecord {
+                        point: intersection,
+                        normal,
+                        t,
+                        material: material.clone(),
+                        front_face: true
+                    };
+                    record.set_face_normal(ray, normal);
+                    Some(record)
+                } else {
+                    None
                 }
             }
         }
@@ -91,7 +136,7 @@ impl HittableList {
         }
         hit_record
     }
-    pub fn random_world() -> Self {
+    pub fn random_spheres() -> Self {
         let mut world = Self { hittables: vec![] };
         world.add(
             Circle {

@@ -3,7 +3,7 @@ use std::io::{Error, Write};
 use std::sync::Mutex;
 use cgmath::Vector3;
 use indicatif::ProgressBar;
-use rand::Rng;
+use rand::{Rng, thread_rng};
 use rayon::prelude::*;
 use Vector3 as Point3;
 use crate::hittable::HittableList;
@@ -94,7 +94,8 @@ impl Camera {
 
         let origin = if self.defocus_angle <= 0.0 { self.camera_center } else { self.defocus_disc_sample() };
         let direction = pixel_sample - origin;
-        Ray { origin, direction }
+        let time = thread_rng().gen_range(0.0..1.0);
+        Ray { origin, direction, time }
     }
     fn pixel_sample_square(self: &Camera) -> Vector3<f64> {
         let mut rng = rand::thread_rng();

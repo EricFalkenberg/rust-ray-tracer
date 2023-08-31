@@ -5,32 +5,32 @@ mod util;
 mod hittable;
 mod camera;
 mod material;
+mod model;
+mod scene;
 
-use std::fs::File;
 use std::io::{Error};
-use cgmath::{Vector3};
+use std::path::PathBuf;
+use clap::{Parser, ValueEnum};
 
-use crate::camera::{Camera, CameraConfig};
-use crate::hittable::{HittableList};
+#[derive(Parser)]
+#[command(author, version, about)]
+/// A ray tracer written in the Rust programming language
+struct Cli {
+    #[arg(value_enum, default_value_t = Scene::Spheres)]
+    scene: Scene,
+    #[arg(short, long, value_name="FILE")]
+    output: Option<PathBuf>
+}
 
-use Vector3 as Point3;
+#[derive(Clone, ValueEnum)]
+pub enum Scene {
+    /// The final scene render of "Ray Tracing in One Weekend"
+    Spheres,
+    /// A custom scene using an .obj model of Link from the game Ocarina of Time (Work in Progress)
+    Link
+}
 
 fn main() -> Result<(), Error> {
-    let mut output_image = File::create("out.ppm")?;
-    let camera = Camera::initialize(
-        CameraConfig {
-            aspect_ratio: 16.0 / 9.0,
-            image_width: 1200,
-            samples_per_pixel: 500,
-            max_depth: 50,
-            vfov: 20.0,
-            lookfrom: Point3::new(13.0, 2.0, 3.0),
-            lookat: Point3::new(0.0, 0.0, 0.0),
-            vup: Vector3::new(0.0, 1.0, 0.0),
-            defocus_angle: 0.6,
-            focus_dist: 10.0
-        }
-    );
-    let world = HittableList::random_world();
-    camera.render(&mut output_image, &world)
+    let cli = Cli::parse();
+    scene::render(cli.scene, cli.output)
 }

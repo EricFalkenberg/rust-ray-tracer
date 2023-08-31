@@ -24,7 +24,8 @@ impl Material {
                 }
                 let new_ray = Ray {
                     origin: hit.point,
-                    direction: scatter_direction
+                    direction: scatter_direction,
+                    time: ray.time
                 };
                 (*albedo, new_ray)
             }
@@ -34,6 +35,7 @@ impl Material {
                 let new_ray = Ray {
                     origin: hit.point,
                     direction: reflection + fuzz_range.clamp(*fuzz)*random_unit_vector(),
+                    time: ray.time
                 };
                 (*albedo, new_ray)
             }
@@ -54,7 +56,7 @@ impl Material {
                 } else {
                     refract(unit_direction, hit.normal, refraction_ratio)
                 };
-                let scattered = Ray { origin: hit.point, direction };
+                let scattered = Ray { origin: hit.point, direction, time: ray.time };
                 (attenuation, scattered)
             }
         }
