@@ -11,6 +11,9 @@ use Vector3 as Point3;
 use Vector3 as Color3;
 use Vector2 as Point2;
 
+type TClosure = dyn Fn(Point3<f64>) -> Point3<f64>;
+type Transform = Box<TClosure>;
+
 pub struct Model {
     pub path: String,
     pub vertices: Vec<Point3<f64>>,
@@ -20,7 +23,7 @@ impl Model {
     pub fn new(
         path: String,
         filename: String,
-        transforms: Vec<Box<dyn Fn(Point3<f64>) -> Point3<f64>>>
+        transforms: Vec<Transform>
     ) -> Self {
         let obj_file = format!("{0}/{1}.obj", path, filename);
         let mtl_file = format!("{0}/{1}.mtl", path, filename);
@@ -32,7 +35,7 @@ impl Model {
         let mut faces: Vec<Hittable> = vec![];
         for line in input.lines() {
             let s = line.unwrap_or(String::from(""));
-            let tokens = s.split(" ").collect::<Vec<&str>>();
+            let tokens = s.split(' ').collect::<Vec<&str>>();
             let id = *tokens.first().unwrap_or(&"#");
             let points = &tokens[1..];
             match id {
@@ -43,13 +46,13 @@ impl Model {
                     faces.push(Model::parse_face(points, &img, &vertices, &texture_coords));
                 }
                 "vt" => {
-                    let x = points.get(0).unwrap_or(&"").parse::<f64>().unwrap_or(0.0);
+                    let x = points.first().unwrap_or(&"").parse::<f64>().unwrap_or(0.0);
                     let y = points.get(1).unwrap_or(&"").parse::<f64>().unwrap_or(0.0);
                     let texture_coord = Point2::new(x, y);
                     texture_coords.push(texture_coord);
                 }
                 "usemtl" => {
-                    let mat_name = String::from(*points.get(0).unwrap_or(&""));
+                    let mat_name = String::from(*points.first().unwrap_or(&""));
                     let material_file_name = format!("{0}/{1}", path, mtl.materials.get(mat_name.as_str()).unwrap());
                     img = image::open(material_file_name);
                 }
@@ -64,9 +67,9 @@ impl Model {
     }
     fn parse_vertex(
         points: &[&str],
-        transforms: &Vec<Box<dyn Fn(Point3<f64>) -> Point3<f64>>>
+        transforms: &Vec<Transform>
     ) -> Point3<f64> {
-        let x = points.get(0)
+        let x = points.first()
             .unwrap_or(&"")
             .parse::<f64>()
             .unwrap_or(0.0) - 1.9;
@@ -84,7 +87,7 @@ impl Model {
         }
         point
     }
-    fn parse_face(points: &[&str], img: &ImageResult<DynamicImage>, vertices: &Vec<Point3<f64>>, texture_coords: &Vec<Vector2<f64>>) -> Hittable {
+    fn parse_face(points: &[&str], img: &ImageResult<DynamicImage>, vertices: &[Point3<f64>], texture_coords: &[Vector2<f64>]) -> Hittable {
         let i = img.as_ref().expect("asdf");
         let (x_v, r_t, _) = Model::parse_face_index(points[0]);
         let (y_v, g_t, _) = Model::parse_face_index(points[1]);
@@ -111,7 +114,7 @@ impl Model {
         }
     }
     fn parse_face_index(s: &str) -> (usize, usize, usize) {
-        let tokens = s.split("/").collect::<Vec<&str>>();
+        let tokens = s.split('/').collect::<Vec<&str>>();
         let vertex_index = tokens[0].parse::<usize>().unwrap_or(1) - 1;
         let texture_index = tokens.get(1).unwrap_or(&"").parse::<usize>().unwrap_or(1) - 1;
         let normal_index = tokens.get(2).unwrap_or(&"").parse::<usize>().unwrap_or(1) - 1;
@@ -131,14 +134,14 @@ impl MaterialTemplateLibrary {
             match id.as_str() {
                 "newmtl" => {
                     let name = points.get(0);
-                    if name.is_some() {
-                        current_material = String::from(name.unwrap());
+                    if let Some(name_unwrapped) = name {
+                        current_material = String::from(name_unwrapped);
                     }
                 },
                 "map_Kd" => {
                     let file_name = points.get(0);
-                    if file_name.is_some() {
-                        materials.insert(String::from(&current_material), String::from(file_name.unwrap()));
+                    if let Some(file_name_unwrapped) = file_name {
+                        materials.insert(String::from(&current_material), String::from(file_name_unwrapped));
                     }
                 }
                 _ => {}
@@ -151,7 +154,7 @@ impl MaterialTemplateLibrary {
 }
 
 fn tokenize_line(s: String) -> (String, Vec<String>) {
-    let tokens = s.split(" ").collect::<Vec<&str>>();
+    let tokens = s.split(' ').collect::<Vec<&str>>();
     let id = String::from(*tokens.first().unwrap_or(&"#"));
     let mut data: Vec<String> = vec![];
     for point in &tokens[1..] {
