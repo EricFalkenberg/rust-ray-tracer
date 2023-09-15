@@ -23,7 +23,7 @@ impl Ray {
         let hit_record = hittable_list.hit(self, Interval::new(0.001, f64::INFINITY));
         match hit_record {
             Some(hit) => {
-                let (attenuation, scattered) = hit.material.scatter(self, &hit);
+                let (attenuation, scattered) = hit.material.scatter(self, &hit, &hittable_list.textures);
                 attenuation.mul_element_wise(scattered.color(hittable_list, max_depth - 1))
             }
             None => {

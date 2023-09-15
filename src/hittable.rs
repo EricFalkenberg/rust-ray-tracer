@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use cgmath::{ElementWise, InnerSpace, Vector3};
 use cgmath::num_traits::Pow;
+use image::DynamicImage;
 use rand::Rng;
 
 use Vector3 as Point3;
@@ -16,7 +18,8 @@ pub struct HitRecord {
     pub normal: Vector3<f64>,
     pub t: f64,
     pub material: Material,
-    pub front_face: bool
+    pub front_face: bool,
+    pub object: Hittable
 }
 impl HitRecord {
     fn set_face_normal(self: &mut HitRecord, ray: &Ray, outward_normal: Vector3<f64>) {
@@ -49,7 +52,8 @@ impl Hittable {
                             normal: outward_normal,
                             t: root,
                             material: material.clone(),
-                            front_face: true
+                            front_face: true,
+                            object: Circle { center: *center, radius: *radius, material: material.clone() }
                         };
                         record.set_face_normal(ray, outward_normal);
                         Some(record)
@@ -93,7 +97,8 @@ impl Hittable {
                         normal,
                         t,
                         material: material.clone(),
-                        front_face: true
+                        front_face: true,
+                        object: Triangle { a: *a, b: *b, c: *c, material: material.clone() }
                     };
                     record.set_face_normal(ray, normal);
                     Some(record)
@@ -116,7 +121,8 @@ fn find_nearest_root(a: f64, half_b: f64, discriminant: f64, ray_t: Interval) ->
     Some(root)
 }
 pub struct HittableList {
-    pub hittables: Vec<Hittable>
+    pub hittables: Vec<Hittable>,
+    pub textures: HashMap<String, DynamicImage>
 }
 impl HittableList {
     pub fn add(self: &mut HittableList, hittable: Hittable) {
@@ -137,7 +143,7 @@ impl HittableList {
         hit_record
     }
     pub fn random_spheres() -> Self {
-        let mut world = Self { hittables: vec![] };
+        let mut world = Self { hittables: vec![], textures: HashMap::new() };
         world.add(
             Circle {
                 center: Vector3::new(0.0, -1000.0, 0.0),

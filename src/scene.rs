@@ -59,11 +59,11 @@ fn render_link(mut output_image: File) -> Result<(), Error> {
         String::from("./models/zelda"),
         String::from("Link Adult"),
         vec![
-            rotate_y(25.0),
+            rotate_y(45.0),
             scale(0.01)
         ]
     );
-    let mut world = HittableList{ hittables: model.faces };
+    let mut world = HittableList{ hittables: model.faces, textures: model.textures };
     world.add(
         Hittable::Circle {
             center: Vector3::new(0.0, -1000.0, 0.0),
